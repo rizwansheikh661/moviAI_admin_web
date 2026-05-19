@@ -1,9 +1,9 @@
 export type LogoSize = 'sm' | 'md' | 'lg';
 
 const sizeMap: Record<LogoSize, { fontSize: string; letterSpacing: string }> = {
-  sm: { fontSize: '1.25rem', letterSpacing: '-0.02em' },
-  md: { fontSize: '1.75rem', letterSpacing: '-0.02em' },
-  lg: { fontSize: '2.5rem', letterSpacing: '-0.025em' },
+  sm: { fontSize: '1rem', letterSpacing: '-0.02em' },
+  md: { fontSize: '1.4rem', letterSpacing: '-0.02em' },
+  lg: { fontSize: '2rem', letterSpacing: '-0.025em' },
 };
 
 export default function Logo({ size = 'md' }: { size?: LogoSize }) {

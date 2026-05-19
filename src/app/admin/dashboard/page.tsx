@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead>
-              <tr style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--brand-text-muted)' }}>
+              <tr>
                 <th>Ride ID</th>
                 <th>Rider</th>
                 <th>Driver</th>
@@ -129,8 +129,8 @@ export default function AdminDashboardPage() {
                       </span>
                     </td>
                     <td>
-                      <button className="btn btn-sm btn-outline-secondary" style={{ padding: '4px 12px' }}>
-                        Details
+                      <button className="btn-icon" title="Ride details">
+                        <i className="bi bi-eye" />
                       </button>
                     </td>
                   </motion.tr>

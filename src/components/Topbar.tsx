@@ -22,11 +22,11 @@ export default function Topbar({ title, subtitle }: Props) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h4 className="mb-0" style={{ color: 'var(--brand-secondary)', fontWeight: 700 }}>
+        <h4 className="mb-0" style={{ color: 'var(--brand-secondary)', fontWeight: 700, fontSize: '1.15rem' }}>
           {title}
         </h4>
         {subtitle && (
-          <div style={{ color: 'var(--brand-text-muted)', fontSize: '0.875rem', marginTop: 2 }}>
+          <div style={{ color: 'var(--brand-text-muted)', fontSize: '0.78rem', marginTop: 2 }}>
             {subtitle}
           </div>
         )}
@@ -59,8 +59,8 @@ export default function Topbar({ title, subtitle }: Props) {
         >
           <div
             style={{
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               borderRadius: '50%',
               background: 'var(--brand-secondary)',
               color: '#fff',
@@ -68,16 +68,16 @@ export default function Topbar({ title, subtitle }: Props) {
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
-              fontSize: '0.9rem',
+              fontSize: '0.8rem',
             }}
           >
             RS
           </div>
           <div className="d-none d-md-block">
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--brand-secondary)' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand-secondary)' }}>
               Rizwan Sheikh
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--brand-text-muted)' }}>
+            <div style={{ fontSize: '0.68rem', color: 'var(--brand-text-muted)' }}>
               Super Admin
             </div>
           </div>

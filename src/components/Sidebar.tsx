@@ -82,7 +82,7 @@ export default function Sidebar({ items, roleLabel }: Props) {
                   background: active ? 'var(--brand-primary)' : 'transparent',
                   color: active ? '#0a1633' : 'var(--brand-text)',
                   fontWeight: active ? 600 : 500,
-                  fontSize: '0.92rem',
+                  fontSize: '0.85rem',
                   transition: 'all 0.18s ease',
                 }}
                 onMouseEnter={(e) => {
@@ -119,7 +119,7 @@ export default function Sidebar({ items, roleLabel }: Props) {
         style={{
           background: 'var(--brand-bg-page)',
           borderRadius: 12,
-          fontSize: '0.82rem',
+          fontSize: '0.78rem',
           color: 'var(--brand-text-muted)',
         }}
       >

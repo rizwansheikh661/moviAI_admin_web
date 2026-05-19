@@ -34,10 +34,12 @@ export default function LoginPage() {
         className="card"
         style={{
           width: '100%',
-          maxWidth: 440,
-          padding: '2.5rem 2.25rem',
-          boxShadow: 'var(--shadow-lg)',
-          border: 'none',
+          maxWidth: 420,
+          padding: '2.25rem 2rem',
+          background: '#ffffff',
+          boxShadow: '0 10px 40px rgba(10, 22, 51, 0.08), 0 2px 8px rgba(10, 22, 51, 0.04)',
+          border: '1px solid #eef0f3',
+          borderRadius: 16,
         }}
       >
         <div className="text-center mb-4">
@@ -48,7 +50,7 @@ export default function LoginPage() {
           >
             <Logo size="lg" />
           </motion.div>
-          <div className="mt-3" style={{ color: 'var(--brand-text-muted)', fontSize: '0.95rem' }}>
+          <div className="mt-3" style={{ color: 'var(--brand-text-muted)', fontSize: '0.85rem' }}>
             Sign in to your admin account
           </div>
         </div>
@@ -152,7 +154,7 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.35 }}
-            style={{ padding: '0.75rem', fontSize: '1rem' }}
+            style={{ padding: '0.65rem', fontSize: '0.9rem' }}
           >
             {loading ? (
               <>
@@ -173,7 +175,7 @@ export default function LoginPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.4 }}
           className="text-center mt-4"
-          style={{ fontSize: '0.825rem', color: 'var(--brand-text-muted)' }}
+          style={{ fontSize: '0.72rem', color: 'var(--brand-text-muted)' }}
         >
           MoviAI Admin · v0.1.0 · {new Date().getFullYear()}
         </motion.div>

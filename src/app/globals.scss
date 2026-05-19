@@ -30,8 +30,9 @@ html, body {
 // Buttons — pill-shaped, soft shadow, scale-on-press feel.
 .btn {
   font-weight: 600;
+  font-size: 0.875rem;
   letter-spacing: 0.01em;
-  padding: 0.6rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   transition: transform 0.12s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 
   &:hover {
@@ -63,14 +64,69 @@ html, body {
 // Cards — soft shadow, no harsh border.
 .card {
   border: 1px solid var(--brand-border);
+  background: #ffffff;
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   &:hover { box-shadow: var(--shadow-md); }
 }
 
+// Tables — clean, modern, breathable.
+.table {
+  --bs-table-bg: transparent;
+  margin-bottom: 0;
+
+  thead th {
+    background: #fafbfc;
+    border-bottom: 1px solid var(--brand-border) !important;
+    border-top: none;
+    font-size: 0.68rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--brand-text-muted) !important;
+    font-weight: 600;
+    padding: 0.55rem 0.85rem;
+  }
+  tbody td {
+    border-color: #f1f3f5;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+    vertical-align: middle;
+  }
+  tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  &.table-hover tbody tr:hover {
+    background-color: #fafbfc;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+// Icon action button — subtle circle that highlights on hover.
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid var(--brand-border);
+  background: #fff;
+  color: var(--brand-secondary);
+  font-size: 0.82rem;
+  transition: all 0.15s ease;
+  &:hover {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: #0a1633;
+    transform: translateY(-1px);
+  }
+}
+
 // Form inputs — bigger, friendlier.
 .form-control, .form-select {
-  padding: 0.65rem 0.9rem;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.875rem;
   border: 1px solid var(--brand-border);
   &:focus {
     border-color: $brand-primary;

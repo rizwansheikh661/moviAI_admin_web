@@ -91,7 +91,7 @@ export default function SuperDashboardPage() {
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
                 <thead>
-                  <tr style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--brand-text-muted)' }}>
+                  <tr>
                     <th>Tenant</th>
                     <th>Country</th>
                     <th>Currency</th>
@@ -133,8 +133,8 @@ export default function SuperDashboardPage() {
                           </span>
                         </td>
                         <td>
-                          <button className="btn btn-sm btn-outline-secondary" style={{ padding: '4px 12px' }}>
-                            View
+                          <button className="btn-icon" title="View tenant">
+                            <i className="bi bi-eye" />
                           </button>
                         </td>
                       </motion.tr>
