@@ -1,0 +1,97 @@
+@use '../styles/tokens' as *;
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+// Global resets + brand polish.
+:root {
+  --brand-primary: #{$brand-primary};
+  --brand-primary-hover: #{$brand-primary-hover};
+  --brand-secondary: #{$brand-secondary};
+  --brand-bg-page: #{$brand-bg-page};
+  --brand-bg-card: #{$brand-bg-card};
+  --brand-bg-sidebar: #{$brand-bg-sidebar};
+  --brand-text: #{$brand-text};
+  --brand-text-muted: #{$brand-text-muted};
+  --brand-border: #{$brand-border};
+  --shadow-sm: #{$shadow-sm};
+  --shadow-md: #{$shadow-md};
+  --shadow-lg: #{$shadow-lg};
+  --radius-md: #{$radius-md};
+  --radius-pill: #{$radius-pill};
+}
+
+html, body {
+  font-family: $font-family-sans-serif;
+  background: var(--brand-bg-page);
+  color: var(--brand-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Buttons — pill-shaped, soft shadow, scale-on-press feel.
+.btn {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.6rem 1.5rem;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  &:active { transform: translateY(0); }
+}
+.btn-primary {
+  color: $brand-text-on-primary;
+  background-color: $brand-primary;
+  border-color: $brand-primary;
+  &:hover { background-color: $brand-primary-hover; border-color: $brand-primary-hover; color: $brand-text-on-primary; }
+  &:active { background-color: $brand-primary-active !important; border-color: $brand-primary-active !important; color: $brand-text-on-primary !important; }
+}
+.btn-secondary {
+  color: #fff;
+  background-color: $brand-secondary;
+  border-color: $brand-secondary;
+  &:hover { background-color: $brand-secondary-hover; border-color: $brand-secondary-hover; }
+}
+.btn-outline-secondary {
+  color: $brand-secondary;
+  border-color: $brand-border-strong;
+  background: #fff;
+  &:hover { color: $brand-secondary; background: $brand-bg-soft; border-color: $brand-secondary; }
+}
+
+// Cards — soft shadow, no harsh border.
+.card {
+  border: 1px solid var(--brand-border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  &:hover { box-shadow: var(--shadow-md); }
+}
+
+// Form inputs — bigger, friendlier.
+.form-control, .form-select {
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--brand-border);
+  &:focus {
+    border-color: $brand-primary;
+    box-shadow: 0 0 0 4px rgba($brand-primary, 0.15);
+  }
+}
+.form-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: $brand-secondary;
+  margin-bottom: 0.4rem;
+}
+
+// Subtle utilities.
+.bg-brand-soft { background: $brand-bg-soft; }
+.text-brand-secondary { color: $brand-secondary !important; }
+.text-brand-primary { color: $brand-primary !important; }
+.bg-brand-primary { background: $brand-primary !important; color: $brand-text-on-primary !important; }
+.bg-brand-secondary { background: $brand-secondary !important; color: #fff !important; }
+
+// Scrollbar polish (webkit only).
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: $brand-border-strong; border-radius: $radius-pill; }
+::-webkit-scrollbar-thumb:hover { background: $brand-text-muted; }
