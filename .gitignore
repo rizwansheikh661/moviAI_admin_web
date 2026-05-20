@@ -12,3 +12,7 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Local deploy artifacts (built from .next/standalone)
+deploy-bundle/
+admin-deploy.zip

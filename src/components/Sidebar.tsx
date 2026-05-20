@@ -12,21 +12,16 @@ export type NavItem = {
   badge?: string;
 };
 
-export const SUPER_NAV: NavItem[] = [
-  { href: '/super/dashboard', label: 'Dashboard', icon: 'speedometer2' },
-  { href: '/super/tenants', label: 'Tenants', icon: 'building' },
-  { href: '/super/tenants/new', label: 'Add Tenant', icon: 'plus-square' },
-  { href: '/super/commission', label: 'Commission Plans', icon: 'cash-coin' },
-  { href: '/super/billing', label: 'Billing', icon: 'receipt' },
-  { href: '/super/settings', label: 'Settings', icon: 'gear' },
-];
-
 export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: 'speedometer2' },
   { href: '/admin/drivers', label: 'Drivers', icon: 'person-badge' },
   { href: '/admin/rides', label: 'Rides', icon: 'car-front' },
   { href: '/admin/commission', label: 'Commission', icon: 'cash-coin' },
+  { href: '/admin/payouts', label: 'Payouts', icon: 'bank' },
   { href: '/admin/settings', label: 'Settings', icon: 'gear' },
+  { href: '/admin/riders', label: 'Riders', icon: 'people' },
+  { href: '/admin/coupons', label: 'Coupons', icon: 'ticket-perforated' },
+  { href: '/admin/audit', label: 'Audit Log', icon: 'clipboard-data' },
 ];
 
 type Props = { items: NavItem[]; roleLabel: string };

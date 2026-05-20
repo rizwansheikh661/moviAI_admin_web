@@ -16,9 +16,7 @@ export default function LoginPage() {
     setLoading(true);
     // Phase 1: mock login. Phase 2 wires real /api/v1/auth/login.
     setTimeout(() => {
-      // Tenant Admin email contains 'tenant', else Super Admin (placeholder logic).
-      const isTenant = email.toLowerCase().includes('tenant');
-      router.push(isTenant ? '/admin/dashboard' : '/super/dashboard');
+      router.push('/admin/dashboard');
     }, 600);
   };
 
@@ -83,9 +81,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <small style={{ color: 'var(--brand-text-muted)' }}>
-              Tip: include "tenant" in email to preview Tenant Admin view
-            </small>
           </motion.div>
 
           <motion.div

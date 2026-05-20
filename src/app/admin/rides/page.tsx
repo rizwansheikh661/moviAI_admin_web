@@ -1,62 +1,58 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import StatusBadge from '@/components/StatusBadge';
+import { MOCK_RIDES, RideStatus, VehicleClass } from '@/lib/mock';
 
-type Ride = {
-  id: string;
-  rider: string;
-  driver: string;
-  pickup: string;
-  drop: string;
-  fare: string;
-  distance: string;
-  status: 'Completed' | 'In progress' | 'Cancelled' | 'Scheduled';
-  startedAt: string;
+const tone = (s: RideStatus) => {
+  if (s === 'COMPLETED') return 'success';
+  if (s === 'IN_PROGRESS' || s === 'DRIVER_ASSIGNED') return 'info';
+  if (s === 'REQUESTED') return 'warning';
+  return 'danger';
 };
 
-const RIDES: Ride[] = [
-  { id: 'R-10487', rider: 'Sarah J.', driver: 'Tom B.', pickup: 'Camden', drop: 'Soho', fare: '£14.20', distance: '4.2 km', status: 'Completed', startedAt: '10:42' },
-  { id: 'R-10486', rider: 'James K.', driver: 'Anita P.', pickup: 'King\'s Cross', drop: 'Holborn', fare: '£8.50', distance: '2.1 km', status: 'In progress', startedAt: '11:08' },
-  { id: 'R-10485', rider: 'Olivia M.', driver: 'Tom B.', pickup: 'Westminster', drop: 'Shoreditch', fare: '£21.00', distance: '6.8 km', status: 'Completed', startedAt: '10:14' },
-  { id: 'R-10484', rider: 'Ben C.', driver: 'Rahul S.', pickup: 'Notting Hill', drop: 'Paddington', fare: '£11.75', distance: '3.4 km', status: 'Cancelled', startedAt: '09:58' },
-  { id: 'R-10483', rider: 'Mia W.', driver: 'Anita P.', pickup: 'Brixton', drop: 'Clapham', fare: '£17.30', distance: '5.1 km', status: 'Completed', startedAt: '09:42' },
-  { id: 'R-10482', rider: 'Liam B.', driver: 'Sofia R.', pickup: 'Greenwich', drop: 'Canary Wharf', fare: '£9.80', distance: '2.8 km', status: 'Completed', startedAt: '09:30' },
-  { id: 'R-10481', rider: 'Ava T.', driver: 'Marcus L.', pickup: 'Hampstead', drop: 'Camden', fare: '£12.40', distance: '3.6 km', status: 'Completed', startedAt: '09:18' },
-  { id: 'R-10480', rider: 'Noah P.', driver: 'Elena G.', pickup: 'Stratford', drop: 'Bethnal Green', fare: '£10.20', distance: '3.0 km', status: 'Completed', startedAt: '09:05' },
-  { id: 'R-10479', rider: 'Isla R.', driver: 'Priya K.', pickup: 'Wimbledon', drop: 'Putney', fare: '£8.90', distance: '2.5 km', status: 'In progress', startedAt: '11:12' },
-  { id: 'R-10478', rider: 'Ethan H.', driver: 'James W.', pickup: 'Chelsea', drop: 'Kensington', fare: '£7.50', distance: '1.9 km', status: 'Completed', startedAt: '08:42' },
-  { id: 'R-10477', rider: 'Lily F.', driver: 'Olivia B.', pickup: 'Islington', drop: 'Angel', fare: '£6.20', distance: '1.5 km', status: 'Cancelled', startedAt: '08:30' },
-  { id: 'R-10476', rider: 'Henry D.', driver: 'Ben C.', pickup: 'Bermondsey', drop: 'London Bridge', fare: '£9.10', distance: '2.6 km', status: 'Completed', startedAt: '08:15' },
-  { id: 'R-10475', rider: 'Grace N.', driver: 'Mia W.', pickup: 'Vauxhall', drop: 'Pimlico', fare: '£11.30', distance: '3.2 km', status: 'Scheduled', startedAt: '15:00' },
+const STATUS_OPTIONS: RideStatus[] = [
+  'REQUESTED',
+  'DRIVER_ASSIGNED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CANCELLED_BY_RIDER',
+  'CANCELLED_BY_DRIVER',
 ];
 
-const tone = (s: Ride['status']) =>
-  s === 'Completed' ? 'success' : s === 'In progress' ? 'info' : s === 'Cancelled' ? 'danger' : 'warning';
+const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
 export default function RidesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<'all' | Ride['status']>('all');
+  const [status, setStatus] = useState<'all' | RideStatus>('all');
+  const [rideClass, setRideClass] = useState<'all' | VehicleClass>('all');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return RIDES.filter((r) => {
+    return MOCK_RIDES.filter((r) => {
       if (status !== 'all' && r.status !== status) return false;
+      if (rideClass !== 'all' && r.rideClass !== rideClass) return false;
+      const d = r.createdAt.slice(0, 10);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
       if (!q) return true;
       return (
-        r.id.toLowerCase().includes(q) ||
-        r.rider.toLowerCase().includes(q) ||
-        r.driver.toLowerCase().includes(q) ||
-        r.pickup.toLowerCase().includes(q) ||
-        r.drop.toLowerCase().includes(q)
+        r.publicId.toLowerCase().includes(q) ||
+        r.riderName.toLowerCase().includes(q) ||
+        r.driverName.toLowerCase().includes(q) ||
+        r.pickupAddress.toLowerCase().includes(q) ||
+        r.dropoffAddress.toLowerCase().includes(q)
       );
     });
-  }, [query, status]);
+  }, [query, status, rideClass, from, to]);
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
@@ -64,7 +60,7 @@ export default function RidesPage() {
     <div>
       <PageHeader
         title="Rides"
-        subtitle={`${filtered.length} rides · today`}
+        subtitle={`${filtered.length} rides`}
         actions={
           <button className="btn btn-outline-secondary btn-sm">
             <i className="bi bi-file-earmark-arrow-down me-1" /> Export
@@ -80,10 +76,16 @@ export default function RidesPage() {
         style={{ padding: '1rem 1.25rem' }}
       >
         <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-          <div className="position-relative" style={{ flex: '1 1 240px', maxWidth: 320 }}>
+          <div className="position-relative" style={{ flex: '1 1 220px', maxWidth: 280 }}>
             <i
               className="bi bi-search position-absolute"
-              style={{ top: '50%', left: 12, transform: 'translateY(-50%)', color: 'var(--brand-text-muted)', fontSize: '0.85rem' }}
+              style={{
+                top: '50%',
+                left: 12,
+                transform: 'translateY(-50%)',
+                color: 'var(--brand-text-muted)',
+                fontSize: '0.85rem',
+              }}
             />
             <input
               type="text"
@@ -92,7 +94,7 @@ export default function RidesPage() {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search ride, rider, driver, location…"
+              placeholder="Search ride, rider, driver, address…"
               className="form-control form-control-sm"
               style={{ paddingLeft: 34 }}
             />
@@ -104,29 +106,62 @@ export default function RidesPage() {
               setPage(1);
             }}
             className="form-select form-select-sm"
-            style={{ width: 160 }}
+            style={{ width: 180 }}
           >
             <option value="all">All statuses</option>
-            <option value="Completed">Completed</option>
-            <option value="In progress">In progress</option>
-            <option value="Scheduled">Scheduled</option>
-            <option value="Cancelled">Cancelled</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s.replace(/_/g, ' ').toLowerCase()}
+              </option>
+            ))}
           </select>
+          <select
+            value={rideClass}
+            onChange={(e) => {
+              setRideClass(e.target.value as typeof rideClass);
+              setPage(1);
+            }}
+            className="form-select form-select-sm"
+            style={{ width: 140 }}
+          >
+            <option value="all">All classes</option>
+            <option value="taxi">Taxi</option>
+            <option value="premium">Premium</option>
+            <option value="xl">XL</option>
+          </select>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              setPage(1);
+            }}
+            className="form-control form-control-sm"
+            style={{ width: 150 }}
+          />
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+              setPage(1);
+            }}
+            className="form-control form-control-sm"
+            style={{ width: 150 }}
+          />
         </div>
 
         <div className="table-responsive">
-          <table className="table table-hover align-middle">
+          <table className="table table-sm table-hover align-middle">
             <thead>
               <tr>
                 <th>Ride</th>
                 <th>Rider</th>
                 <th>Driver</th>
-                <th>Pickup → Drop</th>
-                <th className="text-end">Distance</th>
-                <th className="text-end">Fare</th>
+                <th>Route</th>
                 <th>Status</th>
-                <th>Started</th>
-                <th className="text-end">Actions</th>
+                <th className="text-end">Fare</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
@@ -136,35 +171,32 @@ export default function RidesPage() {
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.03, duration: 0.25 }}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <td style={{ fontWeight: 600, color: 'var(--brand-secondary)', fontFamily: 'ui-monospace, monospace', fontSize: '0.78rem' }}>
-                    {r.id}
+                  <td>
+                    <Link
+                      href={`/admin/rides/${r.publicId}`}
+                      style={{ textDecoration: 'none', color: 'var(--brand-secondary)', fontWeight: 600 }}
+                    >
+                      {r.publicId}
+                    </Link>
                   </td>
-                  <td>{r.rider}</td>
-                  <td>{r.driver}</td>
-                  <td style={{ fontSize: '0.78rem' }}>
-                    <span>{r.pickup}</span>
+                  <td>{r.riderName}</td>
+                  <td>{r.driverName}</td>
+                  <td style={{ fontSize: '0.82rem' }}>
+                    <span>{truncate(r.pickupAddress, 24)}</span>
                     <i className="bi bi-arrow-right mx-1" style={{ color: 'var(--brand-text-muted)' }} />
-                    <span>{r.drop}</span>
-                  </td>
-                  <td className="text-end">{r.distance}</td>
-                  <td className="text-end" style={{ fontWeight: 600 }}>
-                    {r.fare}
+                    <span>{truncate(r.dropoffAddress, 24)}</span>
                   </td>
                   <td>
-                    <StatusBadge tone={tone(r.status)}>{r.status}</StatusBadge>
+                    <StatusBadge tone={tone(r.status)}>
+                      {r.status.replace(/_/g, ' ').toLowerCase()}
+                    </StatusBadge>
                   </td>
-                  <td style={{ color: 'var(--brand-text-muted)' }}>{r.startedAt}</td>
-                  <td className="text-end">
-                    <div className="d-inline-flex gap-1">
-                      <button className="btn-icon" title="View">
-                        <i className="bi bi-eye" />
-                      </button>
-                      <button className="btn-icon" title="Map">
-                        <i className="bi bi-geo-alt" />
-                      </button>
-                    </div>
+                  <td className="text-end" style={{ fontWeight: 600 }}>
+                    €{r.totalFare}
                   </td>
+                  <td style={{ color: 'var(--brand-text-muted)' }}>{r.createdAt.slice(0, 16).replace('T', ' ')}</td>
                 </motion.tr>
               ))}
             </tbody>

@@ -3,7 +3,7 @@ import './globals.scss';
 
 export const metadata: Metadata = {
   title: 'MoviAI Admin',
-  description: 'MoviAI multi-tenant taxi platform — admin panel',
+  description: 'MoviAI ride-hail platform — admin panel',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

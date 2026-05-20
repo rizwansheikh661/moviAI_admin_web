@@ -73,6 +73,9 @@ html, body {
 // Tables — clean, modern, breathable.
 .table {
   --bs-table-bg: transparent;
+  --bs-table-color: #1f2937;
+  --bs-table-hover-color: #0a1633;
+  --bs-table-hover-bg: #fafbfc;
   margin-bottom: 0;
 
   thead th {
@@ -89,7 +92,8 @@ html, body {
   tbody td {
     border-color: #f1f3f5;
     padding: 0.5rem 0.85rem;
-    font-size: 0.82rem;
+    font-size: 0.875rem;
+    color: #1a1a1a;
     vertical-align: middle;
   }
   tbody tr {
@@ -125,18 +129,31 @@ html, body {
 
 // Form inputs — bigger, friendlier.
 .form-control, .form-select {
-  padding: 0.5rem 0.8rem;
-  font-size: 0.875rem;
-  border: 1px solid var(--brand-border);
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+  background-color: #ffffff;
+  color: #0f1c2e;
+  border: 1px solid #d5dbe3;
+  border-radius: 8px;
+  box-shadow: none;
   &:focus {
+    background-color: #ffffff;
     border-color: $brand-primary;
-    box-shadow: 0 0 0 4px rgba($brand-primary, 0.15);
+    box-shadow: 0 0 0 3px rgba($brand-primary, 0.18);
+  }
+  &:disabled, &[readonly] {
+    background-color: #f3f4f6;
+  }
+  &::placeholder {
+    color: #aab4c2;
+    font-weight: 400;
+    opacity: 1;
   }
 }
 .form-label {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: $brand-secondary;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #0f172a;
   margin-bottom: 0.4rem;
 }
 

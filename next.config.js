@@ -2,8 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  basePath: '/admin',
-  assetPrefix: '/admin',
   sassOptions: {
     includePaths: ['./src/styles'],
   },

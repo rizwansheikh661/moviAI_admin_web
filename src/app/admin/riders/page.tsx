@@ -6,21 +6,19 @@ import { motion } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import StatusBadge from '@/components/StatusBadge';
-import { MOCK_DRIVERS, DriverStatus } from '@/lib/mock';
+import { MOCK_RIDERS, RiderStatus } from '@/lib/mock';
 
-const tone = (s: DriverStatus) =>
-  s === 'active' ? 'success' : s === 'pending_kyc' ? 'warning' : 'danger';
+const tone = (s: RiderStatus) => (s === 'active' ? 'success' : 'danger');
 
-type FilterKey = 'all' | DriverStatus;
+type FilterKey = 'all' | RiderStatus;
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'pending_kyc', label: 'Pending KYC' },
   { key: 'active', label: 'Active' },
   { key: 'suspended', label: 'Suspended' },
 ];
 
-export default function DriversPage() {
+export default function RidersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [query, setQuery] = useState('');
@@ -28,14 +26,14 @@ export default function DriversPage() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return MOCK_DRIVERS.filter((d) => {
-      if (filter !== 'all' && d.status !== filter) return false;
+    return MOCK_RIDERS.filter((r) => {
+      if (filter !== 'all' && r.status !== filter) return false;
       if (!q) return true;
       return (
-        d.fullName.toLowerCase().includes(q) ||
-        d.phone.includes(q) ||
-        d.email.toLowerCase().includes(q) ||
-        d.publicId.toLowerCase().includes(q)
+        r.fullName.toLowerCase().includes(q) ||
+        r.phone.includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.publicId.toLowerCase().includes(q)
       );
     });
   }, [query, filter]);
@@ -44,15 +42,7 @@ export default function DriversPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Drivers"
-        subtitle={`${filtered.length} drivers · ${MOCK_DRIVERS.filter((d) => d.status === 'active').length} active`}
-        actions={
-          <button className="btn btn-primary btn-sm">
-            <i className="bi bi-person-plus me-1" /> Add Driver
-          </button>
-        }
-      />
+      <PageHeader title="Riders" subtitle={`${filtered.length} riders`} />
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -63,7 +53,7 @@ export default function DriversPage() {
       >
         <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
           {FILTERS.map((f) => {
-            const active = filter === f.key;
+            const active = f.key === filter;
             return (
               <button
                 key={f.key}
@@ -81,17 +71,13 @@ export default function DriversPage() {
                   background: active ? 'var(--brand-primary)' : '#fff',
                   color: active ? '#0a1633' : 'var(--brand-text)',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
                 }}
               >
                 {f.label}
               </button>
             );
           })}
-          <div
-            className="position-relative ms-auto"
-            style={{ flex: '1 1 220px', maxWidth: 280 }}
-          >
+          <div className="position-relative ms-auto" style={{ flex: '1 1 220px', maxWidth: 280 }}>
             <i
               className="bi bi-search position-absolute"
               style={{
@@ -109,7 +95,7 @@ export default function DriversPage() {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search name, phone, email…"
+              placeholder="Search rider…"
               className="form-control form-control-sm"
               style={{ paddingLeft: 34 }}
             />
@@ -120,44 +106,40 @@ export default function DriversPage() {
           <table className="table table-sm table-hover align-middle">
             <thead>
               <tr>
-                <th>Driver</th>
+                <th>Rider</th>
                 <th>Phone</th>
-                <th>Vehicle</th>
-                <th>Status</th>
+                <th>Email</th>
                 <th className="text-end">Total rides</th>
+                <th className="text-end">Total spent</th>
+                <th>Status</th>
                 <th>Joined</th>
               </tr>
             </thead>
             <tbody>
-              {paged.map((d, i) => (
-                <motion.tr
-                  key={d.id}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03, duration: 0.25 }}
-                  style={{ cursor: 'pointer' }}
-                >
+              {paged.map((r) => (
+                <tr key={r.id} style={{ cursor: 'pointer' }}>
                   <td>
                     <Link
-                      href={`/admin/drivers/${d.publicId}`}
+                      href={`/admin/riders/${r.publicId}`}
                       style={{ textDecoration: 'none', color: 'var(--brand-secondary)' }}
                     >
-                      <div style={{ fontWeight: 600 }}>{d.fullName}</div>
+                      <div style={{ fontWeight: 600 }}>{r.fullName}</div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--brand-text-muted)' }}>
-                        {d.publicId}
+                        {r.publicId}
                       </div>
                     </Link>
                   </td>
-                  <td>{d.phone}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{d.vehicleClass}</td>
-                  <td>
-                    <StatusBadge tone={tone(d.status)}>
-                      {d.status.replace(/_/g, ' ')}
-                    </StatusBadge>
+                  <td>{r.phone}</td>
+                  <td style={{ fontSize: '0.85rem' }}>{r.email}</td>
+                  <td className="text-end">{r.totalRides}</td>
+                  <td className="text-end" style={{ fontWeight: 600 }}>
+                    €{r.totalSpent}
                   </td>
-                  <td className="text-end">{d.totalRides}</td>
-                  <td style={{ color: 'var(--brand-text-muted)' }}>{d.joinedAt}</td>
-                </motion.tr>
+                  <td>
+                    <StatusBadge tone={tone(r.status)}>{r.status}</StatusBadge>
+                  </td>
+                  <td style={{ color: 'var(--brand-text-muted)' }}>{r.joinedAt}</td>
+                </tr>
               ))}
             </tbody>
           </table>
