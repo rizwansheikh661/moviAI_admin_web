@@ -53,43 +53,43 @@ export default function DriverDetailPage() {
 
   const approveMutation = useMutation({
     mutationFn: () => driversApi.kycApprove(id),
-    onSuccess: () => { toast.success('KYC approved'); invalidate(); },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Approve failed'),
+    onSuccess: () => { toast.success('Driver KYC approved. They can now go online.'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't approve KYC. Please try again."),
   });
 
   const rejectMutation = useMutation({
     mutationFn: () => driversApi.kycReject(id, kycRejectReason),
     onSuccess: () => {
-      toast.success('KYC rejected');
+      toast.success('Driver KYC rejected. They will be notified.');
       setKycRejectOpen(false);
       setKycRejectReason('');
       invalidate();
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Reject failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't reject KYC. Please try again."),
   });
 
   const suspendMutation = useMutation({
     mutationFn: () => driversApi.suspend(id, suspendReason || undefined),
     onSuccess: () => {
-      toast.success('Driver suspended');
+      toast.success('Driver suspended. They can no longer accept rides.');
       setSuspendOpen(false);
       setSuspendReason('');
       invalidate();
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Suspend failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't suspend driver. Please try again."),
   });
 
   const unsuspendMutation = useMutation({
     mutationFn: () => driversApi.unsuspend(id),
-    onSuccess: () => { toast.success('Driver reactivated'); invalidate(); },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Unsuspend failed'),
+    onSuccess: () => { toast.success('Driver reactivated. They can accept rides again.'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't reactivate driver. Please try again."),
   });
 
   if (isLoading) return <div className="text-center text-muted py-5">Loading driver…</div>;
   if (isError || !driver) {
     return (
       <div className="alert alert-danger" role="alert">
-        Failed to load driver: {(error as Error)?.message ?? 'Not found'}
+        We couldn't load this driver. {(error as Error)?.message ?? 'They may have been removed.'}
         <button className="btn btn-sm btn-link" onClick={() => router.push('/admin/drivers')}>Back</button>
       </div>
     );

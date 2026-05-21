@@ -96,7 +96,7 @@ export default function AuditPage() {
 
         {isError && (
           <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-            Failed to load audit log: {(error as Error)?.message}
+            We couldn't load the audit log. {(error as Error)?.message}
           </div>
         )}
 

@@ -89,7 +89,7 @@ export default function AdminDashboardPage() {
 
       {isError && (
         <div className="alert alert-danger" role="alert" style={{ fontSize: '0.85rem' }}>
-          Failed to load dashboard: {(error as Error)?.message}
+          We couldn't load the dashboard. {(error as Error)?.message}
         </div>
       )}
 

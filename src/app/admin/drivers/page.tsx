@@ -105,7 +105,7 @@ export default function DriversPage() {
 
         {isError && (
           <div className="alert alert-danger" role="alert" style={{ fontSize: '0.85rem' }}>
-            Failed to load drivers: {(error as Error)?.message}
+            We couldn't load drivers. {(error as Error)?.message}
           </div>
         )}
 

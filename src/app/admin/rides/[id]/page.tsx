@@ -43,26 +43,26 @@ export default function RideDetailPage() {
   const cancelMutation = useMutation({
     mutationFn: () => ridesApi.cancel(id, cancelReason || undefined),
     onSuccess: () => {
-      toast.success('Ride cancelled');
+      toast.success('Ride cancelled. The rider and driver have been notified.');
       setCancelOpen(false);
       setCancelReason('');
       qc.invalidateQueries({ queryKey: ['admin', 'ride', id] });
       qc.invalidateQueries({ queryKey: ['admin', 'rides'] });
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Cancel failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't cancel this ride. Please try again."),
   });
 
   const refundMutation = useMutation({
     mutationFn: () => ridesApi.refund(id, refundAmount || undefined, refundReason || undefined),
     onSuccess: () => {
-      toast.success(`Refund issued${refundAmount ? ` (€${refundAmount})` : ''}`);
+      toast.success(`Refund issued${refundAmount ? ` (€${refundAmount})` : ''}. The rider will see it in 3–5 business days.`);
       setRefundOpen(false);
       setRefundAmount('');
       setRefundReason('');
       qc.invalidateQueries({ queryKey: ['admin', 'ride', id] });
       qc.invalidateQueries({ queryKey: ['admin', 'rides'] });
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Refund failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't process the refund. Please try again."),
   });
 
   if (isLoading) {
@@ -72,7 +72,7 @@ export default function RideDetailPage() {
   if (isError || !ride) {
     return (
       <div className="alert alert-danger" role="alert">
-        Failed to load ride: {(error as Error)?.message ?? 'Not found'}
+        We couldn't load this ride. {(error as Error)?.message ?? 'It may have been removed.'}
         <button className="btn btn-sm btn-link" onClick={() => router.push('/admin/rides')}>
           Back to rides
         </button>

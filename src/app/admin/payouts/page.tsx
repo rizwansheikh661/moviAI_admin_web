@@ -56,25 +56,25 @@ export default function PayoutsPage() {
       return payoutsApi.markPaid(id, { bankRef: bankRef || undefined, note: note || undefined });
     },
     onSuccess: () => {
-      toast.success('Payout marked as paid');
+      toast.success('Payout marked as paid. The driver has been notified.');
       setModalRow(null);
       setBankRef('');
       setNote('');
       invalidate();
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Mark paid failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't mark this payout as paid. Please try again."),
   });
 
   const retryMutation = useMutation({
     mutationFn: (id: string) => payoutsApi.retry(id),
-    onSuccess: () => { toast.success('Payout retry queued'); invalidate(); },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Retry failed'),
+    onSuccess: () => { toast.success('Payout queued for retry. We\u2019ll try again on the next sweep.'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't queue the retry. Please try again."),
   });
 
   const sweepMutation = useMutation({
     mutationFn: () => payoutsApi.runSweep(),
-    onSuccess: () => { toast.success('Payout sweep started'); invalidate(); },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Sweep failed'),
+    onSuccess: () => { toast.success('Payout sweep started. Pending payouts will be processed shortly.'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't start the sweep. Please try again."),
   });
 
   const onTabChange = (k: string) => {
@@ -124,7 +124,7 @@ export default function PayoutsPage() {
       >
         {isError && (
           <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-            Failed to load payouts: {(error as Error)?.message}
+            We couldn't load payouts. {(error as Error)?.message}
           </div>
         )}
         <div className="table-responsive" style={{ opacity: isFetching ? 0.65 : 1, transition: 'opacity 0.2s' }}>

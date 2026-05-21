@@ -49,10 +49,10 @@ export default function AdminCommissionPage() {
         dayOfWeek,
       }),
     onSuccess: () => {
-      toast.success('Commission settings saved');
+      toast.success('Commission settings saved. Changes go live within 60 seconds.');
       qc.invalidateQueries({ queryKey: ['admin', 'commission', 'config'] });
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Save failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't save commission settings. Please try again."),
   });
 
   // --- Ledger ---
@@ -95,7 +95,7 @@ export default function AdminCommissionPage() {
             <div className="text-muted py-3">Loading config…</div>
           ) : configQuery.isError ? (
             <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-              Failed to load config: {(configQuery.error as Error)?.message}
+              We couldn't load commission config. {(configQuery.error as Error)?.message}
             </div>
           ) : (
             <>
@@ -167,7 +167,7 @@ export default function AdminCommissionPage() {
         >
           {ledgerQuery.isError && (
             <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-              Failed to load ledger: {(ledgerQuery.error as Error)?.message}
+              We couldn't load the ledger. {(ledgerQuery.error as Error)?.message}
             </div>
           )}
           <div className="table-responsive" style={{ opacity: ledgerQuery.isFetching ? 0.65 : 1, transition: 'opacity 0.2s' }}>
@@ -257,7 +257,7 @@ export default function AdminCommissionPage() {
             <div className="text-muted py-3">Loading summary…</div>
           ) : summaryQuery.isError ? (
             <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-              Failed to load summary: {(summaryQuery.error as Error)?.message}
+              We couldn't load the summary. {(summaryQuery.error as Error)?.message}
             </div>
           ) : summaryQuery.data ? (
             <>

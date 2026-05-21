@@ -48,10 +48,10 @@ export default function AdminSettingsPage() {
         featureFlags,
       }),
     onSuccess: () => {
-      toast.success('Settings saved');
+      toast.success('Settings saved. Changes are now live across the platform.');
       qc.invalidateQueries({ queryKey: ['admin', 'settings'] });
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Save failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't save settings. Please try again."),
   });
 
   const updateGeneral = (k: string, v: unknown) => setGeneral((prev) => ({ ...prev, [k]: v }));
@@ -65,7 +65,7 @@ export default function AdminSettingsPage() {
   if (isError) {
     return (
       <div className="alert alert-danger" role="alert">
-        Failed to load settings: {(error as Error)?.message}
+        We couldn't load settings. {(error as Error)?.message}
       </div>
     );
   }

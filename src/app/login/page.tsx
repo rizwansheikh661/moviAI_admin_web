@@ -36,11 +36,15 @@ function LoginInner() {
         setLoading(false);
         return;
       }
-      toast.success(`Welcome, ${user.fullName ?? user.email}`);
+      toast.success(`Welcome back, ${user.fullName ?? user.email}`);
       router.push(next);
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.message : 'Sign in failed. Please try again.';
+        err instanceof ApiError
+          ? err.status === 401
+            ? 'Wrong email or password. Please try again.'
+            : err.message
+          : "We couldn't sign you in. Please try again.";
       toast.error(msg);
       setLoading(false);
     }

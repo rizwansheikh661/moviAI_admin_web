@@ -94,7 +94,7 @@ export default function RidersPage() {
 
         {isError && (
           <div className="alert alert-danger" role="alert" style={{ fontSize: '0.85rem' }}>
-            Failed to load riders: {(error as Error)?.message}
+            We couldn't load riders. {(error as Error)?.message}
           </div>
         )}
 

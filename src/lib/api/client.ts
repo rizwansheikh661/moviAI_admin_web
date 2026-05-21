@@ -31,6 +31,26 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Translate raw backend errors into messages we'd show in a toast.
+ * Backend `error.message` is usually engineer-y; this layer keeps the
+ * useful parts (validation messages, conflict reasons) and rewrites
+ * generic HTTP failures into something a non-technical admin can act on.
+ */
+function friendlyMessage(status: number, code: string, backendMsg: string | null): string {
+  // Trust backend message for validation / business errors — those are user-facing already.
+  if (status === 400 || status === 409 || status === 422) {
+    return backendMsg || 'That request looks invalid. Please check the values and try again.';
+  }
+  if (status === 401) return 'Your session has expired. Please sign in again.';
+  if (status === 403) return "You don't have permission to do that.";
+  if (status === 404) return backendMsg || "We couldn't find what you were looking for.";
+  if (status === 429) return 'Too many requests. Please slow down and try again in a few seconds.';
+  if (status >= 500) return 'The server ran into a problem. We\u2019re looking into it — please try again shortly.';
+  // Fallback: prefer backend message if it exists, otherwise generic.
+  return backendMsg || `Something went wrong (error ${status}). Please try again.`;
+}
+
 export type ListMeta = {
   total?: number;
   totalKnown?: boolean;
@@ -90,9 +110,14 @@ export async function apiFetch<T = unknown>(
       credentials: 'omit',
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Network error';
-    logger.error(`x  ${method} ${path} (network)`, { message });
-    throw new ApiError(0, 'NETWORK_ERROR', message);
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    logger.error(`x  ${method} ${path} (network)`, { message: rawMessage });
+    // "Failed to fetch" / "NetworkError" are leaky browser internals — translate.
+    const friendly =
+      err instanceof DOMException && err.name === 'AbortError'
+        ? 'Request cancelled'
+        : "Can't reach the server right now. Please check your internet connection and try again.";
+    throw new ApiError(0, 'NETWORK_ERROR', friendly);
   }
 
   const elapsed = Math.round(performance.now() - started);
@@ -103,11 +128,11 @@ export async function apiFetch<T = unknown>(
   if (!res.ok) {
     const errCode =
       (payload as { error?: { code?: string } } | null)?.error?.code ?? 'HTTP_ERROR';
-    const errMsg =
-      (payload as { error?: { message?: string } } | null)?.error?.message ??
-      `Request failed (${res.status})`;
+    const backendMsg =
+      (payload as { error?: { message?: string } } | null)?.error?.message ?? null;
+    const errMsg = friendlyMessage(res.status, errCode, backendMsg);
     logger.warn(`<- ${method} ${path} ${res.status} ${errCode} (${elapsed}ms)`, {
-      message: errMsg,
+      message: backendMsg ?? errMsg,
     });
     if (res.status === 401 && !anonymous) {
       clearToken();

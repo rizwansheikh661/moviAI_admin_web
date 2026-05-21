@@ -48,36 +48,36 @@ export default function RiderDetailPage() {
   const suspendMutation = useMutation({
     mutationFn: () => ridersApi.suspend(id, suspendReason || undefined),
     onSuccess: () => {
-      toast.success('Rider suspended');
+      toast.success('Rider suspended. They can no longer book rides.');
       setSuspendOpen(false);
       setSuspendReason('');
       invalidate();
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Suspend failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't suspend rider. Please try again."),
   });
 
   const unsuspendMutation = useMutation({
     mutationFn: () => ridersApi.unsuspend(id),
-    onSuccess: () => { toast.success('Rider reactivated'); invalidate(); },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Unsuspend failed'),
+    onSuccess: () => { toast.success('Rider reactivated. They can book rides again.'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't reactivate rider. Please try again."),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => ridersApi.remove(id),
     onSuccess: () => {
-      toast.success('Rider data scrubbed');
+      toast.success('Rider data scrubbed. GDPR deletion complete.');
       setDeleteOpen(false);
       qc.invalidateQueries({ queryKey: ['admin', 'riders'] });
       router.push('/admin/riders');
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Delete failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't delete rider. Please try again."),
   });
 
   if (isLoading) return <div className="text-center text-muted py-5">Loading rider…</div>;
   if (isError || !rider) {
     return (
       <div className="alert alert-danger" role="alert">
-        Failed to load rider: {(error as Error)?.message ?? 'Not found'}
+        We couldn't load this rider. {(error as Error)?.message ?? 'They may have been removed.'}
         <button className="btn btn-sm btn-link" onClick={() => router.push('/admin/riders')}>Back</button>
       </div>
     );

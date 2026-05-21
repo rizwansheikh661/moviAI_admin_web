@@ -54,18 +54,18 @@ export default function CouponsPage() {
   const createMutation = useMutation({
     mutationFn: (body: CouponCreateBody) => couponsApi.create(body),
     onSuccess: () => {
-      toast.success('Coupon created');
+      toast.success('Coupon created. It\u2019s ready for riders to use.');
       setCreateOpen(false);
       setForm(DEFAULT_FORM);
       invalidate();
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Create failed'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't create the coupon. Please check the values and try again."),
   });
 
   const expireMutation = useMutation({
     mutationFn: (id: string) => couponsApi.expire(id),
-    onSuccess: () => { toast.success('Coupon expired'); invalidate(); },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Expire failed'),
+    onSuccess: () => { toast.success('Coupon expired. It can no longer be redeemed.'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Couldn't expire the coupon. Please try again."),
   });
 
   const analyticsQuery = useQuery({
@@ -79,7 +79,7 @@ export default function CouponsPage() {
 
   const submitCreate = () => {
     if (!form.code.trim() || !form.value) {
-      toast.error('Code and value are required');
+      toast.error('Please fill in both the code and the value.');
       return;
     }
     createMutation.mutate({
@@ -113,7 +113,7 @@ export default function CouponsPage() {
       >
         {isError && (
           <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-            Failed to load coupons: {(error as Error)?.message}
+            We couldn't load coupons. {(error as Error)?.message}
           </div>
         )}
         <div className="table-responsive" style={{ opacity: isFetching ? 0.65 : 1, transition: 'opacity 0.2s' }}>
@@ -286,7 +286,7 @@ export default function CouponsPage() {
           <div className="text-muted">Loading analytics…</div>
         ) : analyticsQuery.isError ? (
           <div className="alert alert-danger" style={{ fontSize: '0.85rem' }}>
-            Failed to load: {(analyticsQuery.error as Error)?.message}
+            We couldn't load analytics. {(analyticsQuery.error as Error)?.message}
           </div>
         ) : analyticsQuery.data ? (
           <div>
