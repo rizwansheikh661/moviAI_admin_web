@@ -1,14 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import StatusBadge from '@/components/StatusBadge';
-import { MOCK_RIDERS, RiderStatus } from '@/lib/mock';
+import { ridersApi } from '@/lib/api/resources';
+import type { RiderStatus } from '@/lib/api/types';
 
-const tone = (s: RiderStatus) => (s === 'active' ? 'success' : 'danger');
+const tone = (s: RiderStatus | string) => (s === 'active' ? 'success' : 'danger');
 
 type FilterKey = 'all' | RiderStatus;
 
@@ -24,25 +26,25 @@ export default function RidersPage() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    return MOCK_RIDERS.filter((r) => {
-      if (filter !== 'all' && r.status !== filter) return false;
-      if (!q) return true;
-      return (
-        r.fullName.toLowerCase().includes(q) ||
-        r.phone.includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        r.publicId.toLowerCase().includes(q)
-      );
-    });
-  }, [query, filter]);
+  const offset = (page - 1) * pageSize;
+  const { data, isLoading, isError, error, isFetching } = useQuery({
+    queryKey: ['admin', 'riders', { query, filter, pageSize, offset }],
+    queryFn: () =>
+      ridersApi.list({
+        q: query || undefined,
+        status: filter === 'all' ? undefined : filter,
+        limit: pageSize,
+        offset,
+      }),
+    placeholderData: keepPreviousData,
+  });
 
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const rows = data?.items ?? [];
+  const total = data?.total ?? rows.length;
 
   return (
     <div>
-      <PageHeader title="Riders" subtitle={`${filtered.length} riders`} />
+      <PageHeader title="Riders" subtitle={isLoading ? 'Loading…' : `${total} riders`} />
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -58,10 +60,7 @@ export default function RidersPage() {
               <button
                 key={f.key}
                 type="button"
-                onClick={() => {
-                  setFilter(f.key);
-                  setPage(1);
-                }}
+                onClick={() => { setFilter(f.key); setPage(1); }}
                 style={{
                   border: '1px solid var(--brand-border)',
                   borderRadius: 999,
@@ -80,21 +79,12 @@ export default function RidersPage() {
           <div className="position-relative ms-auto" style={{ flex: '1 1 220px', maxWidth: 280 }}>
             <i
               className="bi bi-search position-absolute"
-              style={{
-                top: '50%',
-                left: 12,
-                transform: 'translateY(-50%)',
-                color: 'var(--brand-text-muted)',
-                fontSize: '0.85rem',
-              }}
+              style={{ top: '50%', left: 12, transform: 'translateY(-50%)', color: 'var(--brand-text-muted)', fontSize: '0.85rem' }}
             />
             <input
               type="text"
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => { setQuery(e.target.value); setPage(1); }}
               placeholder="Search rider…"
               className="form-control form-control-sm"
               style={{ paddingLeft: 34 }}
@@ -102,7 +92,13 @@ export default function RidersPage() {
           </div>
         </div>
 
-        <div className="table-responsive">
+        {isError && (
+          <div className="alert alert-danger" role="alert" style={{ fontSize: '0.85rem' }}>
+            Failed to load riders: {(error as Error)?.message}
+          </div>
+        )}
+
+        <div className="table-responsive" style={{ opacity: isFetching ? 0.65 : 1, transition: 'opacity 0.2s' }}>
           <table className="table table-sm table-hover align-middle">
             <thead>
               <tr>
@@ -116,31 +112,28 @@ export default function RidersPage() {
               </tr>
             </thead>
             <tbody>
-              {paged.map((r) => (
-                <tr key={r.id} style={{ cursor: 'pointer' }}>
-                  <td>
-                    <Link
-                      href={`/admin/riders/${r.publicId}`}
-                      style={{ textDecoration: 'none', color: 'var(--brand-secondary)' }}
-                    >
-                      <div style={{ fontWeight: 600 }}>{r.fullName}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--brand-text-muted)' }}>
-                        {r.publicId}
-                      </div>
-                    </Link>
-                  </td>
-                  <td>{r.phone}</td>
-                  <td style={{ fontSize: '0.85rem' }}>{r.email}</td>
-                  <td className="text-end">{r.totalRides}</td>
-                  <td className="text-end" style={{ fontWeight: 600 }}>
-                    €{r.totalSpent}
-                  </td>
-                  <td>
-                    <StatusBadge tone={tone(r.status)}>{r.status}</StatusBadge>
-                  </td>
-                  <td style={{ color: 'var(--brand-text-muted)' }}>{r.joinedAt}</td>
-                </tr>
-              ))}
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center text-muted py-4">Loading…</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={7} className="text-center text-muted py-4">No riders found</td></tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.publicId} style={{ cursor: 'pointer' }}>
+                    <td>
+                      <Link href={`/admin/riders/${r.publicId}`} style={{ textDecoration: 'none', color: 'var(--brand-secondary)' }}>
+                        <div style={{ fontWeight: 600 }}>{r.fullName}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--brand-text-muted)' }}>{r.publicId}</div>
+                      </Link>
+                    </td>
+                    <td>{r.phone}</td>
+                    <td style={{ fontSize: '0.85rem' }}>{r.email}</td>
+                    <td className="text-end">{r.totalRides}</td>
+                    <td className="text-end" style={{ fontWeight: 600 }}>€{r.totalSpent}</td>
+                    <td><StatusBadge tone={tone(r.status)}>{r.status}</StatusBadge></td>
+                    <td style={{ color: 'var(--brand-text-muted)' }}>{r.joinedAt?.slice(0, 10)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -148,12 +141,9 @@ export default function RidersPage() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={filtered.length}
+          total={total}
           onPageChange={setPage}
-          onPageSizeChange={(s) => {
-            setPageSize(s);
-            setPage(1);
-          }}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
         />
       </motion.div>
     </div>

@@ -1,43 +1,91 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import StatCard from '@/components/StatCard';
 import Tabs from '@/components/Tabs';
 import Modal from '@/components/Modal';
-import { MOCK_RIDERS, MOCK_RIDES, RiderStatus } from '@/lib/mock';
+import { ridersApi } from '@/lib/api/resources';
+import { ApiError } from '@/lib/api/client';
+import type { RiderStatus } from '@/lib/api/types';
 
-const tone = (s: RiderStatus) => (s === 'active' ? 'success' : 'danger');
+const tone = (s: RiderStatus | string) => (s === 'active' ? 'success' : 'danger');
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: 'grid' },
   { key: 'rides', label: 'Rides', icon: 'car-front' },
-  { key: 'payments', label: 'Payments', icon: 'credit-card' },
-];
-
-const PAYMENTS = [
-  { date: '2026-05-19', method: 'Visa •••• 4242', amount: '14.20', status: 'succeeded' },
-  { date: '2026-05-15', method: 'Apple Pay', amount: '8.50', status: 'succeeded' },
-  { date: '2026-05-12', method: 'Visa •••• 4242', amount: '21.00', status: 'refunded' },
-  { date: '2026-05-08', method: 'Visa •••• 4242', amount: '11.75', status: 'succeeded' },
 ];
 
 export default function RiderDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params?.id ?? '');
-  const rider = MOCK_RIDERS.find((r) => r.publicId === id) ?? MOCK_RIDERS[0];
+  const qc = useQueryClient();
+
   const [active, setActive] = useState('overview');
+  const [suspendOpen, setSuspendOpen] = useState(false);
+  const [suspendReason, setSuspendReason] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
 
-  const initials = rider.fullName
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('');
+  const { data: rider, isLoading, isError, error } = useQuery({
+    queryKey: ['admin', 'rider', id],
+    queryFn: () => ridersApi.get(id).then((r) => r.data),
+    enabled: Boolean(id),
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'rider', id] });
+    qc.invalidateQueries({ queryKey: ['admin', 'riders'] });
+  };
+
+  const suspendMutation = useMutation({
+    mutationFn: () => ridersApi.suspend(id, suspendReason || undefined),
+    onSuccess: () => {
+      toast.success('Rider suspended');
+      setSuspendOpen(false);
+      setSuspendReason('');
+      invalidate();
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Suspend failed'),
+  });
+
+  const unsuspendMutation = useMutation({
+    mutationFn: () => ridersApi.unsuspend(id),
+    onSuccess: () => { toast.success('Rider reactivated'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Unsuspend failed'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => ridersApi.remove(id),
+    onSuccess: () => {
+      toast.success('Rider data scrubbed');
+      setDeleteOpen(false);
+      qc.invalidateQueries({ queryKey: ['admin', 'riders'] });
+      router.push('/admin/riders');
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Delete failed'),
+  });
+
+  if (isLoading) return <div className="text-center text-muted py-5">Loading rider…</div>;
+  if (isError || !rider) {
+    return (
+      <div className="alert alert-danger" role="alert">
+        Failed to load rider: {(error as Error)?.message ?? 'Not found'}
+        <button className="btn btn-sm btn-link" onClick={() => router.push('/admin/riders')}>Back</button>
+      </div>
+    );
+  }
+
+  const initials = rider.fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  const isSuspended = rider.status === 'suspended';
+  const recentRides = rider.recentRides ?? [];
 
   return (
     <div>
@@ -53,16 +101,10 @@ export default function RiderDetailPage() {
         <div className="d-flex flex-wrap align-items-center gap-3">
           <div
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              background: 'var(--brand-secondary)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '1.3rem',
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'var(--brand-secondary)', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, fontSize: '1.3rem',
             }}
           >
             {initials}
@@ -79,14 +121,21 @@ export default function RiderDetailPage() {
             </div>
           </div>
           <div className="d-flex gap-2">
-            <button
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => alert('Rider suspended. (mock)')}
-            >
-              Suspend
-            </button>
+            {isSuspended ? (
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={unsuspendMutation.isPending}
+                onClick={() => unsuspendMutation.mutate()}
+              >
+                <i className="bi bi-play-circle me-1" /> {unsuspendMutation.isPending ? 'Reactivating…' : 'Reactivate'}
+              </button>
+            ) : (
+              <button className="btn btn-outline-danger btn-sm" onClick={() => setSuspendOpen(true)}>
+                <i className="bi bi-pause-circle me-1" /> Suspend
+              </button>
+            )}
             <button className="btn btn-danger btn-sm" onClick={() => setDeleteOpen(true)}>
-              GDPR Delete
+              <i className="bi bi-trash me-1" /> GDPR Delete
             </button>
           </div>
         </div>
@@ -102,7 +151,7 @@ export default function RiderDetailPage() {
       >
         {active === 'overview' && (
           <div className="row g-3">
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-md-4">
               <StatCard
                 label="Total rides"
                 value={String(rider.totalRides)}
@@ -110,7 +159,7 @@ export default function RiderDetailPage() {
                 icon={<i className="bi bi-car-front" />}
               />
             </div>
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-md-4">
               <StatCard
                 label="Total spent"
                 value={`€${rider.totalSpent}`}
@@ -118,18 +167,10 @@ export default function RiderDetailPage() {
                 icon={<i className="bi bi-cash-coin" />}
               />
             </div>
-            <div className="col-12 col-md-3">
-              <StatCard
-                label="Avg rating"
-                value="4.8"
-                accent="warning"
-                icon={<i className="bi bi-star-fill" />}
-              />
-            </div>
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-md-4">
               <StatCard
                 label="Member since"
-                value={rider.joinedAt}
+                value={rider.joinedAt?.slice(0, 10) ?? '—'}
                 accent="info"
                 icon={<i className="bi bi-calendar-check" />}
               />
@@ -151,56 +192,29 @@ export default function RiderDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_RIDES.slice(0, 5).map((r) => (
-                    <tr key={r.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--brand-secondary)' }}>
-                        {r.publicId}
-                      </td>
-                      <td>{r.driverName}</td>
-                      <td>€{r.totalFare}</td>
-                      <td>
-                        <StatusBadge tone="info">
-                          {r.status.replace(/_/g, ' ').toLowerCase()}
-                        </StatusBadge>
-                      </td>
-                      <td style={{ color: 'var(--brand-text-muted)' }}>
-                        {r.createdAt.slice(0, 10)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {active === 'payments' && (
-          <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <div className="table-responsive">
-              <table className="table table-sm table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Method</th>
-                    <th className="text-end">Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {PAYMENTS.map((p, i) => (
-                    <tr key={i}>
-                      <td>{p.date}</td>
-                      <td>{p.method}</td>
-                      <td className="text-end" style={{ fontWeight: 600 }}>
-                        €{p.amount}
-                      </td>
-                      <td>
-                        <StatusBadge tone={p.status === 'succeeded' ? 'success' : 'warning'}>
-                          {p.status}
-                        </StatusBadge>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentRides.length === 0 ? (
+                    <tr><td colSpan={5} className="text-center text-muted py-4">No rides yet</td></tr>
+                  ) : (
+                    recentRides.map((r) => (
+                      <tr key={r.publicId}>
+                        <td style={{ fontWeight: 600, color: 'var(--brand-secondary)' }}>
+                          <Link href={`/admin/rides/${r.publicId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                            {r.publicId}
+                          </Link>
+                        </td>
+                        <td>{r.driverName ?? '—'}</td>
+                        <td>€{r.totalFare}</td>
+                        <td>
+                          <StatusBadge tone="info">
+                            {String(r.status).replace(/_/g, ' ').toLowerCase()}
+                          </StatusBadge>
+                        </td>
+                        <td style={{ color: 'var(--brand-text-muted)' }}>
+                          {r.createdAt?.slice(0, 10)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -209,23 +223,50 @@ export default function RiderDetailPage() {
       </motion.div>
 
       <Modal
+        show={suspendOpen}
+        onHide={() => setSuspendOpen(false)}
+        title="Suspend rider"
+        footer={
+          <>
+            <button className="btn btn-outline-secondary btn-sm" onClick={() => setSuspendOpen(false)}>Cancel</button>
+            <button
+              className="btn btn-danger btn-sm"
+              disabled={suspendMutation.isPending}
+              onClick={() => suspendMutation.mutate()}
+            >
+              {suspendMutation.isPending ? 'Suspending…' : 'Suspend rider'}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label className="form-label">Reason (optional)</label>
+          <textarea
+            className="form-control"
+            rows={3}
+            value={suspendReason}
+            onChange={(e) => setSuspendReason(e.target.value)}
+            placeholder="e.g. abuse, chargebacks"
+          />
+        </div>
+      </Modal>
+
+      <Modal
         show={deleteOpen}
-        onHide={() => setDeleteOpen(false)}
+        onHide={() => { setDeleteOpen(false); setConfirmText(''); }}
         title="GDPR delete rider"
         footer={
           <>
-            <button className="btn btn-outline-secondary btn-sm" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </button>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => { setDeleteOpen(false); setConfirmText(''); }}
+            >Cancel</button>
             <button
               className="btn btn-danger btn-sm"
-              disabled={confirmText !== 'DELETE'}
-              onClick={() => {
-                alert('PII scrubbed. (mock)');
-                setDeleteOpen(false);
-              }}
+              disabled={confirmText !== 'DELETE' || deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
             >
-              Delete permanently
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete permanently'}
             </button>
           </>
         }

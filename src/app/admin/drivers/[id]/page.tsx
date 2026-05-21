@@ -1,57 +1,104 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import StatCard from '@/components/StatCard';
 import Tabs from '@/components/Tabs';
-import { MOCK_DRIVERS, MOCK_RIDES, DriverStatus } from '@/lib/mock';
+import Modal from '@/components/Modal';
+import { driversApi } from '@/lib/api/resources';
+import type { DriverStatus, DriverDocument } from '@/lib/api/types';
+import { ApiError } from '@/lib/api/client';
 
-const tone = (s: DriverStatus) =>
+const tone = (s: DriverStatus | string) =>
   s === 'active' ? 'success' : s === 'pending_kyc' ? 'warning' : 'danger';
+
+const docTone = (s: string) =>
+  s === 'approved' ? 'success' : s === 'rejected' ? 'danger' : 'warning';
 
 const TABS = [
   { key: 'profile', label: 'Profile', icon: 'person' },
   { key: 'vehicle', label: 'Vehicle', icon: 'car-front-fill' },
   { key: 'documents', label: 'Documents', icon: 'file-earmark-text' },
-  { key: 'rides', label: 'Rides', icon: 'car-front' },
   { key: 'earnings', label: 'Earnings', icon: 'cash-coin' },
   { key: 'bank', label: 'Bank account', icon: 'bank' },
 ];
 
-const VEHICLE = {
-  make: 'Toyota',
-  model: 'Prius',
-  year: '2022',
-  color: 'Silver',
-  plate: 'B-MV 4821',
-  vin: 'JTDKB20U703456789',
-  seats: '4',
-  insuranceProvider: 'Allianz',
-  insuranceExpiry: '2026-11-30',
-  registrationExpiry: '2027-03-14',
-  inspectionStatus: 'passed',
-};
-
-const DOCS = [
-  { name: "Driver's licence", status: 'pending' },
-  { name: 'Insurance certificate', status: 'pending' },
-  { name: 'Vehicle photo', status: 'approved' },
-];
-
 export default function DriverDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params?.id ?? '');
-  const driver = MOCK_DRIVERS.find((d) => d.publicId === id) ?? MOCK_DRIVERS[0];
-  const [active, setActive] = useState('profile');
+  const qc = useQueryClient();
 
-  const initials = driver.fullName
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('');
+  const { data: driver, isLoading, isError, error } = useQuery({
+    queryKey: ['admin', 'driver', id],
+    queryFn: () => driversApi.get(id).then((r) => r.data),
+    enabled: Boolean(id),
+  });
+
+  const [active, setActive] = useState('profile');
+  const [kycRejectOpen, setKycRejectOpen] = useState(false);
+  const [kycRejectReason, setKycRejectReason] = useState('');
+  const [suspendOpen, setSuspendOpen] = useState(false);
+  const [suspendReason, setSuspendReason] = useState('');
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'driver', id] });
+    qc.invalidateQueries({ queryKey: ['admin', 'drivers'] });
+  };
+
+  const approveMutation = useMutation({
+    mutationFn: () => driversApi.kycApprove(id),
+    onSuccess: () => { toast.success('KYC approved'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Approve failed'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => driversApi.kycReject(id, kycRejectReason),
+    onSuccess: () => {
+      toast.success('KYC rejected');
+      setKycRejectOpen(false);
+      setKycRejectReason('');
+      invalidate();
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Reject failed'),
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: () => driversApi.suspend(id, suspendReason || undefined),
+    onSuccess: () => {
+      toast.success('Driver suspended');
+      setSuspendOpen(false);
+      setSuspendReason('');
+      invalidate();
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Suspend failed'),
+  });
+
+  const unsuspendMutation = useMutation({
+    mutationFn: () => driversApi.unsuspend(id),
+    onSuccess: () => { toast.success('Driver reactivated'); invalidate(); },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Unsuspend failed'),
+  });
+
+  if (isLoading) return <div className="text-center text-muted py-5">Loading driver…</div>;
+  if (isError || !driver) {
+    return (
+      <div className="alert alert-danger" role="alert">
+        Failed to load driver: {(error as Error)?.message ?? 'Not found'}
+        <button className="btn btn-sm btn-link" onClick={() => router.push('/admin/drivers')}>Back</button>
+      </div>
+    );
+  }
+
+  const initials = driver.fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  const docs = driver.documents ?? [];
+  const isSuspended = driver.status === 'suspended';
+  const isPending = driver.status === 'pending_kyc';
 
   return (
     <div>
@@ -67,16 +114,10 @@ export default function DriverDetailPage() {
         <div className="d-flex flex-wrap align-items-center gap-3">
           <div
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              background: 'var(--brand-secondary)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '1.3rem',
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'var(--brand-secondary)', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, fontSize: '1.3rem',
             }}
           >
             {initials}
@@ -92,30 +133,51 @@ export default function DriverDetailPage() {
               <StatusBadge tone={tone(driver.status)}>
                 {driver.status.replace(/_/g, ' ')}
               </StatusBadge>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  color: 'var(--brand-text-muted)',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {driver.vehicleClass}
+              <span style={{ fontSize: '0.72rem', color: 'var(--brand-text-muted)', textTransform: 'capitalize' }}>
+                {driver.vehicleClass ?? ''}
               </span>
             </div>
+            {driver.rejectedReason && (
+              <div className="mt-1" style={{ fontSize: '0.78rem', color: '#ef4444' }}>
+                Reason: {driver.rejectedReason}
+              </div>
+            )}
           </div>
-          <div className="d-flex gap-2">
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => alert('KYC approved. (mock)')}
-            >
-              <i className="bi bi-check2 me-1" /> Approve KYC
-            </button>
-            <button
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => alert('Driver suspended. (mock)')}
-            >
-              <i className="bi bi-pause-circle me-1" /> Suspend
-            </button>
+          <div className="d-flex gap-2 flex-wrap">
+            {isPending && (
+              <>
+                <button
+                  className="btn btn-primary btn-sm"
+                  disabled={approveMutation.isPending}
+                  onClick={() => approveMutation.mutate()}
+                >
+                  <i className="bi bi-check2 me-1" /> {approveMutation.isPending ? 'Approving…' : 'Approve KYC'}
+                </button>
+                <button
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={() => setKycRejectOpen(true)}
+                >
+                  <i className="bi bi-x-circle me-1" /> Reject KYC
+                </button>
+              </>
+            )}
+            {!isSuspended && !isPending && (
+              <button
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => setSuspendOpen(true)}
+              >
+                <i className="bi bi-pause-circle me-1" /> Suspend
+              </button>
+            )}
+            {isSuspended && (
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={unsuspendMutation.isPending}
+                onClick={() => unsuspendMutation.mutate()}
+              >
+                <i className="bi bi-play-circle me-1" /> {unsuspendMutation.isPending ? 'Reactivating…' : 'Reactivate'}
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -136,159 +198,199 @@ export default function DriverDetailPage() {
             <Field label="Public ID" value={driver.publicId} mono />
             <Field label="Phone" value={driver.phone} />
             <Field label="Email" value={driver.email} />
-            <Field label="Vehicle class" value={driver.vehicleClass} />
-            <Field label="Joined at" value={driver.joinedAt} />
+            <Field label="Vehicle class" value={driver.vehicleClass ?? '—'} />
+            <Field label="Joined at" value={driver.joinedAt?.slice(0, 10) ?? '—'} />
           </div>
         )}
 
         {active === 'vehicle' && (
-          <div>
-            <div className="d-flex flex-wrap align-items-center gap-3 mb-3 pb-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
-              <div
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 12,
-                  background: 'var(--brand-bg-page)',
-                  border: '1px solid var(--brand-border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--brand-secondary)',
-                  fontSize: '2rem',
-                }}
-              >
-                <i className="bi bi-car-front-fill" />
-              </div>
-              <div className="flex-grow-1">
-                <div style={{ fontWeight: 700, color: 'var(--brand-secondary)', fontSize: '1.05rem' }}>
-                  {VEHICLE.make} {VEHICLE.model} · {VEHICLE.year}
+          driver.vehicle ? (
+            <div>
+              <div className="d-flex flex-wrap align-items-center gap-3 mb-3 pb-3" style={{ borderBottom: '1px solid var(--brand-border)' }}>
+                <div
+                  style={{
+                    width: 72, height: 72, borderRadius: 12,
+                    background: 'var(--brand-bg-page)', border: '1px solid var(--brand-border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--brand-secondary)', fontSize: '2rem',
+                  }}
+                >
+                  <i className="bi bi-car-front-fill" />
                 </div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--brand-text-muted)' }}>
-                  {VEHICLE.color} · {VEHICLE.plate} · {VEHICLE.seats} seats
-                </div>
-                <div className="mt-1 d-flex gap-2 align-items-center">
-                  <StatusBadge tone="success">Inspection {VEHICLE.inspectionStatus}</StatusBadge>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--brand-text-muted)', textTransform: 'capitalize' }}>
-                    Class: {driver.vehicleClass}
-                  </span>
+                <div className="flex-grow-1">
+                  <div style={{ fontWeight: 700, color: 'var(--brand-secondary)', fontSize: '1.05rem' }}>
+                    {driver.vehicle.make} {driver.vehicle.model} · {driver.vehicle.year}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--brand-text-muted)' }}>
+                    {driver.vehicle.color} · {driver.vehicle.plate}
+                  </div>
                 </div>
               </div>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => alert('Vehicle edit form. (mock)')}
-              >
-                <i className="bi bi-pencil me-1" /> Edit
-              </button>
+              <div className="row g-3" style={{ maxWidth: 720 }}>
+                <Field label="Make" value={driver.vehicle.make} />
+                <Field label="Model" value={driver.vehicle.model} />
+                <Field label="Year" value={String(driver.vehicle.year)} />
+                <Field label="Color" value={driver.vehicle.color} />
+                <Field label="Plate number" value={driver.vehicle.plate} mono />
+                <Field label="Vehicle class" value={driver.vehicle.vehicleClass} />
+              </div>
             </div>
-            <div className="row g-3" style={{ maxWidth: 720 }}>
-              <Field label="Make" value={VEHICLE.make} />
-              <Field label="Model" value={VEHICLE.model} />
-              <Field label="Year" value={VEHICLE.year} />
-              <Field label="Color" value={VEHICLE.color} />
-              <Field label="Plate number" value={VEHICLE.plate} mono />
-              <Field label="VIN" value={VEHICLE.vin} mono />
-              <Field label="Seats" value={VEHICLE.seats} />
-              <Field label="Insurance provider" value={VEHICLE.insuranceProvider} />
-              <Field label="Insurance expiry" value={VEHICLE.insuranceExpiry} />
-              <Field label="Registration expiry" value={VEHICLE.registrationExpiry} />
-            </div>
-          </div>
+          ) : (
+            <div className="text-center text-muted py-4">No vehicle registered for this driver yet.</div>
+          )
         )}
 
         {active === 'documents' && (
-          <div className="d-flex flex-column gap-2">
-            {DOCS.map((doc) => (
-              <div
-                key={doc.name}
-                className="d-flex align-items-center justify-content-between p-3"
-                style={{
-                  background: 'var(--brand-bg-page)',
-                  border: '1px solid var(--brand-border)',
-                  borderRadius: 10,
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, color: 'var(--brand-secondary)' }}>
-                    {doc.name}
+          docs.length === 0 ? (
+            <div className="text-center text-muted py-4">No documents uploaded.</div>
+          ) : (
+            <div className="d-flex flex-column gap-2">
+              {docs.map((doc: DriverDocument) => (
+                <div
+                  key={doc.publicId}
+                  className="d-flex align-items-center justify-content-between p-3"
+                  style={{
+                    background: 'var(--brand-bg-page)',
+                    border: '1px solid var(--brand-border)',
+                    borderRadius: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--brand-secondary)' }}>
+                      {doc.kind}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--brand-text-muted)' }}>
+                      Uploaded {doc.uploadedAt?.slice(0, 10)}
+                    </div>
+                    {doc.rejectedReason && (
+                      <div style={{ fontSize: '0.75rem', color: '#ef4444' }}>
+                        Rejected: {doc.rejectedReason}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--brand-text-muted)' }}>
-                    Uploaded 2026-05-15
+                  <div className="d-flex gap-2 align-items-center">
+                    {doc.url && (
+                      <a
+                        className="btn btn-outline-secondary btn-sm"
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <i className="bi bi-eye me-1" /> View
+                      </a>
+                    )}
+                    <StatusBadge tone={docTone(doc.status)}>{doc.status}</StatusBadge>
                   </div>
                 </div>
-                <div className="d-flex gap-2">
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => alert(`Approved ${doc.name}. (mock)`)}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={() => alert(`Rejected ${doc.name}. (mock)`)}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {active === 'rides' && (
-          <div className="table-responsive">
-            <table className="table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Ride</th>
-                  <th>Rider</th>
-                  <th>Fare</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MOCK_RIDES.slice(0, 5).map((r) => (
-                  <tr key={r.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--brand-secondary)' }}>
-                      {r.publicId}
-                    </td>
-                    <td>{r.riderName}</td>
-                    <td>€{r.totalFare}</td>
-                    <td>
-                      <StatusBadge tone="info">{r.status.replace(/_/g, ' ').toLowerCase()}</StatusBadge>
-                    </td>
-                    <td style={{ color: 'var(--brand-text-muted)' }}>{r.createdAt.slice(0, 10)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </div>
+          )
         )}
 
         {active === 'earnings' && (
           <div className="row g-3">
             <div className="col-12 col-md-4">
-              <StatCard label="This week" value="€482.30" accent="primary" icon={<i className="bi bi-calendar3" />} />
+              <StatCard
+                label="Total commission"
+                value={`€${driver.earnings?.totalCommission ?? '0.00'}`}
+                accent="primary"
+                icon={<i className="bi bi-coin" />}
+              />
             </div>
             <div className="col-12 col-md-4">
-              <StatCard label="This month" value="€1,840.20" accent="info" icon={<i className="bi bi-calendar-month" />} />
+              <StatCard
+                label="Total payout"
+                value={`€${driver.earnings?.totalPayout ?? '0.00'}`}
+                accent="info"
+                icon={<i className="bi bi-bank" />}
+              />
             </div>
             <div className="col-12 col-md-4">
-              <StatCard label="Lifetime" value="€14,820.40" accent="secondary" icon={<i className="bi bi-trophy" />} />
+              <StatCard
+                label="Pending payout"
+                value={`€${driver.earnings?.pendingPayout ?? '0.00'}`}
+                accent="warning"
+                icon={<i className="bi bi-hourglass" />}
+              />
+            </div>
+            <div className="col-12">
+              <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                Ride count: {driver.earnings?.rideCount ?? 0}
+              </div>
             </div>
           </div>
         )}
 
         {active === 'bank' && (
-          <div className="row g-3" style={{ maxWidth: 480 }}>
-            <Field label="Account holder" value={driver.fullName} />
-            <Field label="IBAN (masked)" value="DE89 **** **** **** **** 1234" mono />
-            <Field label="Bank name" value="Deutsche Bank" />
-            <Field label="Last verified" value="2026-04-12" />
-          </div>
+          driver.bankAccount ? (
+            <div className="row g-3" style={{ maxWidth: 480 }}>
+              <Field label="Account holder" value={driver.bankAccount.holderName} />
+              <Field label="IBAN" value={driver.bankAccount.iban} mono />
+              <Field label="Default" value={driver.bankAccount.isDefault ? 'Yes' : 'No'} />
+            </div>
+          ) : (
+            <div className="text-center text-muted py-4">No bank account on file.</div>
+          )
         )}
       </motion.div>
+
+      <Modal
+        show={kycRejectOpen}
+        onHide={() => setKycRejectOpen(false)}
+        title="Reject KYC"
+        footer={
+          <>
+            <button className="btn btn-outline-secondary btn-sm" onClick={() => setKycRejectOpen(false)}>Cancel</button>
+            <button
+              className="btn btn-danger btn-sm"
+              disabled={rejectMutation.isPending || !kycRejectReason.trim()}
+              onClick={() => rejectMutation.mutate()}
+            >
+              {rejectMutation.isPending ? 'Rejecting…' : 'Reject KYC'}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label className="form-label">Reason (required)</label>
+          <textarea
+            className="form-control"
+            rows={3}
+            value={kycRejectReason}
+            onChange={(e) => setKycRejectReason(e.target.value)}
+            placeholder="Why are you rejecting this driver's KYC?"
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        show={suspendOpen}
+        onHide={() => setSuspendOpen(false)}
+        title="Suspend driver"
+        footer={
+          <>
+            <button className="btn btn-outline-secondary btn-sm" onClick={() => setSuspendOpen(false)}>Cancel</button>
+            <button
+              className="btn btn-danger btn-sm"
+              disabled={suspendMutation.isPending}
+              onClick={() => suspendMutation.mutate()}
+            >
+              {suspendMutation.isPending ? 'Suspending…' : 'Suspend driver'}
+            </button>
+          </>
+        }
+      >
+        <div>
+          <label className="form-label">Reason (optional)</label>
+          <textarea
+            className="form-control"
+            rows={3}
+            value={suspendReason}
+            onChange={(e) => setSuspendReason(e.target.value)}
+            placeholder="e.g. complaints, fraud risk"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -296,17 +398,12 @@ export default function DriverDetailPage() {
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="col-md-6">
-      <label className="form-label" style={{ fontSize: '0.78rem' }}>
-        {label}
-      </label>
+      <label className="form-label" style={{ fontSize: '0.78rem' }}>{label}</label>
       <input
         className="form-control"
-        defaultValue={value}
+        value={value}
         readOnly
-        style={{
-          fontFamily: mono ? 'ui-monospace, monospace' : undefined,
-          fontSize: '0.85rem',
-        }}
+        style={{ fontFamily: mono ? 'ui-monospace, monospace' : undefined, fontSize: '0.85rem' }}
       />
     </div>
   );

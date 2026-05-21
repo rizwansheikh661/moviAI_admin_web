@@ -9,13 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.11",
     "bootstrap": "5.3.3",
     "bootstrap-icons": "1.11.3",
     "framer-motion": "11.11.7",
     "next": "^14.2.33",
     "react": "18.3.1",
     "react-bootstrap": "2.10.5",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "20.16.11",

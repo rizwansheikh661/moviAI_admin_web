@@ -1,23 +1,49 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+export const dynamic = 'force-dynamic';
+
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import Logo from '@/components/Logo';
+import { login } from '@/lib/api/auth';
+import { ApiError } from '@/lib/api/client';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const router = useRouter();
+  const params = useSearchParams();
+  const next = params.get('next') || '/admin/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Phase 1: mock login. Phase 2 wires real /api/v1/auth/login.
-    setTimeout(() => {
-      router.push('/admin/dashboard');
-    }, 600);
+    try {
+      const user = await login(email, password);
+      if (user.role !== 'admin' && user.role !== 'superadmin') {
+        toast.error('This account is not allowed to access the admin panel.');
+        setLoading(false);
+        return;
+      }
+      toast.success(`Welcome, ${user.fullName ?? user.email}`);
+      router.push(next);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : 'Sign in failed. Please try again.';
+      toast.error(msg);
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,12 +80,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.35 }}
-            className="mb-3"
-          >
+          <div className="mb-3">
             <label className="form-label">Email</label>
             <div className="position-relative">
               <i
@@ -81,14 +102,9 @@ export default function LoginPage() {
                 required
               />
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.32, duration: 0.35 }}
-            className="mb-3"
-          >
+          <div className="mb-3">
             <label className="form-label">Password</label>
             <div className="position-relative">
               <i
@@ -110,14 +126,9 @@ export default function LoginPage() {
                 required
               />
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.38, duration: 0.35 }}
-            className="d-flex justify-content-between align-items-center mb-4"
-          >
+          <div className="d-flex justify-content-between align-items-center mb-4">
             <div className="form-check">
               <input className="form-check-input" type="checkbox" id="rememberMe" />
               <label
@@ -139,16 +150,13 @@ export default function LoginPage() {
             >
               Forgot password?
             </a>
-          </motion.div>
+          </div>
 
           <motion.button
             type="submit"
             className="btn btn-primary w-100"
             disabled={loading}
             whileTap={{ scale: 0.97 }}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.35 }}
             style={{ padding: '0.65rem', fontSize: '0.9rem' }}
           >
             {loading ? (
@@ -165,15 +173,12 @@ export default function LoginPage() {
           </motion.button>
         </form>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.4 }}
+        <div
           className="text-center mt-4"
           style={{ fontSize: '0.72rem', color: 'var(--brand-text-muted)' }}
         >
           MoviAI Admin · v0.1.0 · {new Date().getFullYear()}
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );
